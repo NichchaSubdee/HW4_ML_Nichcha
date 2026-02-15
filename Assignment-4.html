@@ -353,7 +353,67 @@ display: none;
 </div>
 
 
-
+<div id="load-packages-needed" class="section level4">
+<h4><strong>Load Packages Needed</strong></h4>
+<pre class="r"><code>library(ggbiplot)
+library(dplyr)
+library(stats)
+library(factoextra)
+library(cluster)
+library(Amelia)
+library(caret)
+library(tidyverse)</code></pre>
+<p>REMEMBER TO SET YOUR SEED USING 123 TO ENSURE REPRODUCIBLE
+RESULTS.</p>
+<p>Part I: Implementing a Simple Prediction Pipeline</p>
+<p>The New York City Department of Health administered a questionnaire
+on general health and physical activity among residents. Using the
+dataset class4_p1.csv, fit and evaluate two prediction models using
+linear regression. The aim of the models are to predict the number of
+days in a month an individual reported having good physical health
+(feature name: healthydays). A codebook is provided so you can look-up
+the meaning and values of each feature in the dataset. (Note the
+codebook lists information on features that are not included in your
+dataset).</p>
+<p>Your analytic pipeline should include the following:</p>
+<ol style="list-style-type: decimal">
+<li><p>Perform basic data cleaning. Note which features are continuous,
+which are categorical and ensure they are being stored that way in your
+R dataset (That is, if categorical variables have been read-in as
+continuous variables, convert them to factors)</p></li>
+<li><p>Partition data into training and testing (use a 70/30
+split)</p></li>
+<li><p>Fit two prediction models using different subsets of the features
+in the training data. Features can overlap in the two models, but the
+feature sets should not be exactly the same across models. Clearly state
+which features were used in the two models.</p></li>
+<li><p>Apply both models within the test data and determine which model
+is the preferred prediction model using the appropriate evaluation
+metric(s).</p></li>
+<li><p>Describe one setting (in 1-2 sentences) where the implementation
+of your final model would be useful.</p></li>
+</ol>
+<p>Part II: Conducting an Unsupervised Analysis</p>
+<p>Using the dataset from the Group assignment Part 3 (USArrests),
+identify clusters using hierarchical analysis.</p>
+<ol start="6" style="list-style-type: decimal">
+<li><p>Conduct a hierarchical clustering analysis. Use a Euclidian
+distance measure to construct your dissimilarity matrix. Use complete
+linkage.</p></li>
+<li><p>Determine the optimal number of clusters using a clear,
+data-driven strategy.</p></li>
+<li><p>Describe the composition of each cluster in terms of the original
+input features</p></li>
+<li><p>Pretend that the data are from 2022 and not 1973. Describe one
+research question that can be addressed using the newly identified
+clusters. Briefly comment on any scientific or ethical considerations
+one should review before using these clusters for your specific
+question. NOTE: The clusters can be used as an exposure, an outcome or a
+covariate. (2-4 sentences)</p></li>
+<li><p>Optional Repeat analysis with a different linkage method
+(e.g. single or average). Do the clusters change?</p></li>
+</ol>
+</div>
 
 
 
