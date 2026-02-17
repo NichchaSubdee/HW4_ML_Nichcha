@@ -1,7 +1,9 @@
 ---
 title: "**Assignment 4**"
 output:
-  html_document: default
+  word_document: default
+editor_options:
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -27,7 +29,7 @@ p1_df = read_csv(file = "./class4_p1.csv")
 p1_df
 ```
 
-**Description:** Based on the initial inspection of the dataset, there are 17 columns and 3,811 rows. All variables were imported as double numeric (dbl) values. However, according to the codebook, several variables represent categorical survey responses rather than continuous measurements. Therefore, variables were recoded as either categorical (factor) or continuous (numeric) to ensure they are stored and analyzed appropriately.
+**Description:** Based on the raw dataset, there are 17 columns and 3,811 rows. All variables were imported as double numeric (dbl) values. However, according to the codebook, several variables represent categorical survey responses rather than continuous measurements. Therefore, variables would be recode as either categorical (factor) or continuous (numeric) to ensure they are stored and analyzed appropriately.
 
 ### **Part I: Implementing a Simple Prediction Pipeline**
 
@@ -92,13 +94,17 @@ cat("Training set:", nrow(train_df), "observations\n")
 cat("Test set:", nrow(test_df), "observations\n")
 ```
 
-3. Fit two prediction models using different subsets of the features in the training data. Features can overlap in the two models, but the feature sets should not be exactly the same across models. Clearly state which features were used in the two models.
+**Note:** After using a 70/30 split, there are 2,607 and 1,116 observation in training set and test set, respectively.
+
+
+**3. Fit two prediction models using different subsets of the features in the training data.** 
+
+Features can overlap in the two models, but the feature sets should not be exactly the same across models. Clearly state which features were used in the two models.
 
 ```{r Q3_0, message=FALSE}
 # Set up cross-validation
 control_settings = trainControl(method = "cv", number = 10)
 ```
-
 
 **Model 1: Demographic characteristics (age, sex, poverty) and chronic disease predictors (hypertension, diabetes, asthma) ot predict healthy days**
 
@@ -107,7 +113,7 @@ Features: `agegroup`,`dem3`,`povertygroup`,`chronic1`,`chronic3`,`chronic4`,`bmi
 ```{r Q3_1, message=FALSE}
 set.seed(123)
 
-model1 <- train(
+model1 = train(
   healthydays ~ agegroup + dem3 + povertygroup + chronic1 + chronic3 + chronic4 + bmi,
   data = train_df,
   method = "lm",
@@ -131,7 +137,7 @@ Features: Model 1 and `gpaq8totmin`, `gpaq11days`, `habits5`, `tobacco1`, `alcoh
 ```{r Q3_2, message=FALSE}
 set.seed(123)
 
-model2 <- train(
+model2 = train(
   healthydays ~ agegroup + dem3 + povertygroup + chronic1 + chronic3 + chronic4 + 
                 bmi + gpaq8totmin + gpaq11days + habits5 + tobacco1 + alcohol1,
   data = train_df,
@@ -148,17 +154,16 @@ model2$results
 summary(model2$finalModel)
 ```
 
-
-4. Apply both models within the test data and determine which model is the preferred prediction model using the appropriate evaluation metric(s). 
+**4. Apply both models within the test data and determine which model is the preferred prediction model using the appropriate evaluation metric(s).** 
 
 ```{r Q4_1, message=FALSE}
 # Generate predictions on test set
-pred1 <- predict(model1, newdata = test_df)
-pred2 <- predict(model2, newdata = test_df)
+pred1 = predict(model1, newdata = test_df)
+pred2 = predict(model2, newdata = test_df)
 
 # Identify complete cases (rows without missing predictions)
 complete_cases1 = complete.cases(test_df[, c("agegroup", "dem3", "povertygroup", "chronic1", "chronic3", "chronic4", "bmi")])
-complete_cases2 = complete.cases(test_df[, c("agegroup", "dem3", "povertygroup", "chronic1", "chronic3", "chronic4", "bmi",            "gpaq8totmin", "gpaq11days", "habits5", "tobacco1", "alcohol1")])
+complete_cases2 = complete.cases(test_df[, c("agegroup", "dem3", "povertygroup", "chronic1", "chronic3", "chronic4", "bmi", "gpaq8totmin", "gpaq11days", "habits5", "tobacco1", "alcohol1")])
 
 # Create results data frames with matching rows
 test_outcome_model1 = data.frame(
@@ -177,73 +182,213 @@ eval_model1 = postResample(pred = test_outcome_model1$predicted,
 eval_model2 = postResample(pred = test_outcome_model2$predicted, 
                             obs = test_outcome_model2$observed)
 
-# Create comparison table
+# Create comparison table with formatted values
 model_comparison = data.frame(
-  Model = c("Model 1: Demographics + Health", 
-            "Model 2: Demographics + Health + PA + Lifestyle"),
-  RMSE = c(eval_model1["RMSE"], eval_model2["RMSE"]),
-  Rsquared = c(eval_model1["Rsquared"], eval_model2["Rsquared"]),
-  MAE = c(eval_model1["MAE"], eval_model2["MAE"])
+  Model = c("Model 1: Demographics + underlying chronic disease", 
+            "Model 2: Model 1 + physical activity + lifestyle"),
+  RMSE = round(c(eval_model1["RMSE"], eval_model2["RMSE"]), 3),
+  Rsquared = round(c(eval_model1["Rsquared"], eval_model2["Rsquared"]), 3),
+  MAE = round(c(eval_model1["MAE"], eval_model2["MAE"]), 3),
+  N_Predictors = c(7, 12)
 )
 
-model_comparison %>%
-  print()
-
-# Determine preferred model
-cat("\n**Model Performance Summary:**\n")
-cat("Model 1 RMSE:", round(eval_model1["RMSE"], 3), "\n")
-cat("Model 2 RMSE:", round(eval_model2["RMSE"], 3), "\n\n")
-
-if (eval_model2["RMSE"] < eval_model1["RMSE"]) {
-  cat("**Preferred Model: Model 2**\n")
-  cat("Model 2 achieves lower prediction error (RMSE =", round(eval_model2["RMSE"], 3),") compared to Model 1 (RMSE =", round(eval_model1["RMSE"], 3), ").\n")
-  cat("Model 2 explains", round(eval_model2["Rsquared"] * 100, 1), 
-      "% of variance compared to", round(eval_model1["Rsquared"] * 100, 1), "% for Model 1.\n")
-} else {
-  cat("**Preferred Model: Model 1**\n")
-  cat("Model 1 achieves lower prediction error despite using fewer features.\n")
-}
+# Display table using kable for clean formatting
+knitr::kable(model_comparison, 
+             col.names = c("Model", "RMSE", "R²", "MAE", "N Predictors"),
+             align = c("l", "c", "c", "c", "c"),
+             caption = "Table 1. Model Performance Comparison on Test Set")
 ```
 
-```{r Q4_2, message =FALSE}
-# Visualize predictions vs observed values
-par(mfrow = c(1, 2))
+**Model Selection:** Based on the evaluation metrics in Table 1, **Model 2** has lower prediction error (RMSE = 7.581 < 7.631) and higher proportion of variance (R² = 8.7% > 7.5%) compared to Model 1. These values reflect that adding physical activity and lifestyle factors into the model help to improve prediction accuracy beyond demographics and chronic conditions alone (Model 1). Therefore, **Model 2** is the preferred prediction model.
 
-# Model 1
-plot(test_outcome_model1$observed, test_outcome_model1$predicted,
-     xlab = "Observed Healthy Days",
-     ylab = "Predicted Healthy Days",
-     main = "Model 1: Predicted vs Observed",
-     pch = 16, col = rgb(0, 0, 1, 0.5))
-abline(0, 1, col = "red", lwd = 2)
+**5. Describe one setting (in 1-2 sentences) where the implementation of your final model would be useful.**
 
-# Model 2
-plot(test_outcome_model2$observed, test_outcome_model2$predicted,
-     xlab = "Observed Healthy Days",
-     ylab = "Predicted Healthy Days",
-     main = "Model 2: Predicted vs Observed",
-     pch = 16, col = rgb(0, 0.5, 0, 0.5))
-abline(0, 1, col = "red", lwd = 2)
-```
-
-5. Describe one setting (in 1-2 sentences) where the implementation of your final model would be useful.
-
-**Answer:** The final prediction model could be implemented in New York City's public health surveillance system to identify residents at risk of poor physical health days. By collecting basic demographic, health status, and physical activity information through routine community health surveys, public health officials can predict which individuals are likely to experience fewer healthy days per month and prioritize them for targeted interventions such as chronic disease management programs, community exercise initiatives, or health coaching services.
+**Answer:** Model 2 could be applied within New York City chronic disease management programs to identify residents who are more likely to experience fewer healthy days each month based on demographic characteristics, health status, and physical activity patterns. These predictions could help health officials prioritize high-risk individuals for targeted interventions, such as community exercise initiatives or personalized health coaching.
 
 
 ### **Part II: Conducting an Unsupervised Analysis**
 
 Using the dataset from the Group assignment Part 3 (USArrests), identify clusters using hierarchical analysis.
 
-6. Conduct a hierarchical clustering analysis. Use a Euclidian distance measure to construct your dissimilarity matrix. Use complete linkage.
+**Import data**
 
-7. Determine the optimal number of clusters using a clear, data-driven strategy.
+```{r part2_import, message=FALSE}
+data("USArrests")
+USArrests
+```
 
-8. Describe the composition of each cluster in terms of the original input features
+**6. Conduct a hierarchical clustering analysis. Use a Euclidian distance measure to construct your dissimilarity matrix. Use complete linkage.**
 
-9. Pretend that the data are from 2022 and not 1973. Describe one research question that can be addressed using the newly identified clusters. Briefly comment on any scientific or ethical considerations one should review before using these clusters for your specific question. NOTE: The clusters can be used as an exposure, an outcome or a covariate. (2-4 sentences)
+```{r Q6_1, message=FALSE}
+# Check if scaling is needed
+colMeans(USArrests, na.rm = TRUE)
+apply(USArrests, 2, sd, na.rm = TRUE)
+```
 
-10. Optional Repeat analysis with a different linkage method (e.g. single or average). Do the clusters change?
+**Note:** Variables have substantially different scales (e.g., Assault mean = 170.76, SD = 83.34 vs Murder mean = 7.79, SD = 4.36), which would cause Assault to dominate distance calculations. Therefore, standardization (mean=0, SD=1) is applied to ensure equal contribution from all variables.
+
+```{r Q6_2, message=FALSE}
+# Scale
+arrests_scaled = scale(USArrests)
+```
+
+```{r Q6_3, message=FALSE}
+set.seed(123)
+
+# Create dissimilarity matrix using Euclidean distance
+diss_matrix = dist(arrests_scaled, method = "euclidean")
+
+# Hierarchical clustering using complete linkage
+clusters_h = hclust(diss_matrix, method = "complete")
+
+# Plot dendrogram
+plot(clusters_h, cex = 0.6, hang = -1, 
+     main = "Figure 1: Hierarchical Clustering Dendrogram (Complete Linkage)",
+     xlab = "States", ylab = "Height")
+```
+
+**Description:** In **Figure 1**, the dendrogram illustrates the hierarchical structure of all 50 US states based on their violent crime rates and urbanization. The height of each branch represents dissimilarity (Euclidean distance) between clusters. The major split occurring near the top of the tree (height ≈ 6) divides the 50 states into two primary groups: high-crime and low-crime states.
+
+**7. Determine the optimal number of clusters using a clear, data-driven strategy.**
+
+```{r Q7_1, message=FALSE}
+set.seed(123)
+
+# Create function for hclust with cutree
+hclust_cut = function(x, k) {
+  list(cluster = cutree(hclust(dist(x, method = "euclidean"), 
+                                method = "complete"), k = k))
+}
+
+# Perform gap statistic analysis
+gap_stat = clusGap(arrests_scaled, FUN = hclust_cut, K.max = 10, B = 50)
+
+# Visualize gap statistic
+fviz_gap_stat(gap_stat)
+
+# Print gap statistic results
+print(gap_stat, method = "firstmax")
+```
+
+**Note:** From the Gap statistic result, **the optimal number of cluster is 2**.
+
+```{r Q7_2, message=FALSE}
+# Use optimal number of clusters from gap statistic (adjust k based on your results)
+optimal_k = 2  
+
+# Assign cluster membership
+clusters_final = cutree(clusters_h, k = optimal_k)
+
+# Display cluster assignments
+table(clusters_final)
+
+# Add cluster assignments to original data
+arrests_with_clusters = cbind(USArrests, cluster = clusters_final)
+```
+
+**Description:** According to the gap statistic using the "firstmax" method, the optimal number of cluster is 2. We can divide the 50 states into 2 groups
+
+* Group 1 (Cluster 1) = 19 states 
+* Group 2 (Cluster 2) = 31 states.
+
+**8. Describe the composition of each cluster in terms of the original input features**
+
+```{r Q8_1, message=FALSE}
+# Calculate mean values of features within each cluster
+cluster_summary = arrests_with_clusters %>%
+  group_by(cluster) %>%
+  summarise_all(mean)
+
+# Display cluster composition table
+knitr::kable(cluster_summary, 
+             digits = 2,
+             caption = "Table 2: Mean Feature Values by Cluster",
+             col.names = c("Cluster", "Murder", "Assault", "Urban Pop (%)", "Rape"))
+```
+
+```{r Q8_2, message=FALSE}
+# Show which states are in each cluster (optional but helpful)
+for(i in 1:optimal_k) {
+  cat("\nCluster", i, "states:\n")
+  cat(rownames(USArrests)[clusters_final == i], sep = ", ")
+  cat("\n")
+}
+```
+
+**Cluster interpretation:**
+
+* **Cluster 1 (High-Crime States, n = 19):**
+
+This cluster is characterized by substantially higher levels across all crime indicators, including murder (12.33), assault (259.32), rape (29.22), and urbanization (68.32%). It includes large and densely populated states such as New York, California, Florida, and Texas, along with states historically associated with elevated crime levels, including Louisiana, Mississippi, and Nevada. These higher crime rates are consistent with greater population density and stronger urban concentration.
+
+* **Cluster 2 (Low-Crime States, n = 31):**
+
+This cluster shows much lower levels across all crime measures, including murder (5.00), assault (116.48), rape (16.34), and urbanization (63.84%). It mainly consists of smaller and less urbanized states such as Arkansas, Montana, Vermont, and North Dakota. Their lower crime rates align with more rural or suburban settlement patterns and more dispersed populations.
+
+**9. Pretend that the data are from 2022 and not 1973. Describe one research question that can be addressed using the newly identified clusters. Briefly comment on any scientific or ethical considerations one should review before using these clusters for your specific question. NOTE: The clusters can be used as an exposure, an outcome or a covariate. (2-4 sentences)**
+
+**Answer:** If the data was from 2022, a research question that could be asked is _Were states in the high-crime cluster more vulnerable to pandemic-related increases in domestic violence and assault compared to low-crime cluster states during COVID-19 lockdowns_.
+
+* _Considerations_: Ethically, it is essential to ensure that the findings do not further stigmatize vulnerable communities or become a justification for reducing public health services. Scientifically, researchers need to account for possible underreporting during lockdowns and distinguish true increases in crime from changes in reporting behavior.
+
+**10. Optional Repeat analysis with a different linkage method (e.g. single or average). Do the clusters change?**
+
+* **Single linkage method**
+
+```{r Q10_1, message=FALSE}
+set.seed(123)
+
+# Hierarchical clustering using single linkage
+clusters_h_single = hclust(diss_matrix, method = "single")
+
+# Plot dendrogram
+plot(clusters_h_single, cex = 0.6, hang = -1,
+     main = "Figure 2: Hierarchical Clustering Dendrogram (Single Linkage)",
+     xlab = "States", ylab = "Height")
+
+# Assign clusters using same k
+clusters_single = cutree(clusters_h_single, k = optimal_k)
+
+# Compare cluster assignments
+comparison_table = table(Complete = clusters_final, Single = clusters_single)
+print(comparison_table)
+```
+
+* **Average linkage method**
+```{r Q10_2, message=FALSE}
+set.seed(123)
+
+# Hierarchical clustering using average linkage
+clusters_h_average = hclust(diss_matrix, method = "average")
+
+# Plot dendrogram
+plot(clusters_h_average, cex = 0.6, hang = -1,
+     main = "Figure 3: Hierarchical Clustering Dendrogram (Average Linkage)",
+     xlab = "States", ylab = "Height")
+
+# Assign clusters using same k
+clusters_average = cutree(clusters_h_average, k = optimal_k)
+
+# Compare all three methods
+comparison_all = data.frame(
+  State = rownames(USArrests),
+  Complete = clusters_final,
+  Single = clusters_single,
+  Average = clusters_average
+)
+
+head(comparison_all, 10)
+
+# Calculate agreement between methods
+cat("Agreement between Complete and Single:", 
+    sum(clusters_final == clusters_single) / length(clusters_final) * 100, "%\n")
+cat("Agreement between Complete and Average:", 
+    sum(clusters_final == clusters_average) / length(clusters_final) * 100, "%\n")
+
+```
+
+**Description:** Using different linkage methods can significantly affect both cluster assignments and the overall dendrogram structure. Complete and average linkage give very similar results (98% agreement), and both produce balanced clusters that clearly separate into two distinct groups at the beginning (Figure 3). In contrast, single linkage shows only 36% agreement with complete linkage because of the chaining effect, which leads to one large cluster with 49 states and another with only Alaska (Figure 2). In addition, single linkage has very low merge heights, with a maximum around 2.0, while average linkage reaches about 3.0. These differences reflect how each method measures dissimilarity. Overall, complete linkage is the most appropriate method for this dataset. It produces compact, clearly separated clusters and avoids the chaining problem that makes single linkage difficult to interpret.
+
 
 ### **AI tools**
 
